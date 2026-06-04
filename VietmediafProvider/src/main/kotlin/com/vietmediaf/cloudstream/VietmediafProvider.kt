@@ -118,13 +118,39 @@ class VietmediafProvider : MainAPI() {
             val downloadUrl = source.downloadUrl ?: continue
             val uploaderLabel = source.uploader ?: "Nguồn ${sourceIndex + 1}"
             val sizeLabel = source.size ?: ""
+            val sheetName = source.sheetName ?: "Nguồn ${sourceIndex + 1}"
 
-            if (downloadUrl.contains("/folder/")) {
-                // It's a folder → list contents to get episodes
-                if (!fshareReady) continue
+            if (typeString == "movie") {
+                // Lười load (Lazy loading) cho phim lẻ: Không gọi Fshare API ở đây để trang tải nhanh hơn
+                // và vẫn hiển thị được link kể cả khi chưa đăng nhập.
+                val isFolder = downloadUrl.contains("/folder/")
+                val linkcode = if (isFolder) extractFolderLinkcode(downloadUrl) else extractLinkcode(downloadUrl)
+                val epData = """{"linkcode":"$linkcode","name":"$sheetName","uploader":"$uploaderLabel","isFolder":$isFolder}"""
+                episodes.add(
+                    newEpisode(epData) {
+                        this.name = "$sheetName ($sizeLabel)"
+                        this.season = 1
+                        this.episode = sourceIndex + 1
+                    }
+                )
+            } else {
+                // Phim bộ: Bắt buộc phải duyệt folder để lấy danh sách tập
+                if (downloadUrl.contains("/folder/")) {
+                    if (!fshareReady) {
+                        // Nếu chưa đăng nhập, hiển thị 1 tập ảo để thông báo
+                        if (sourceIndex == 0) {
+                            val epData = """{"linkcode":"","name":"","uploader":""}"""
+                            episodes.add(newEpisode(epData) {
+                                this.name = "Vui lòng đăng nhập Fshare trong cài đặt Plugin"
+                                this.season = 1
+                                this.episode = 1
+                            })
+                        }
+                        continue
+                    }
 
-                val linkcode = extractFolderLinkcode(downloadUrl)
-                val folderResult = FshareApi.listFolder(linkcode)
+                    val linkcode = extractFolderLinkcode(downloadUrl)
+                    val folderResult = FshareApi.listFolder(linkcode)
 
                 if (folderResult != null) {
                     val (subfolders, files) = folderResult
@@ -159,18 +185,18 @@ class VietmediafProvider : MainAPI() {
                             )
                         }
                     }
+                } else if (downloadUrl.contains("/file/")) {
+                    // Single file source
+                    val linkcode = extractLinkcode(downloadUrl)
+                    val epData = """{"linkcode":"$linkcode","name":"$uploaderLabel $sizeLabel","uploader":"$uploaderLabel","isFolder":false}"""
+                    episodes.add(
+                        newEpisode(epData) {
+                            this.name = "$sheetName ($sizeLabel)"
+                            this.season = 1
+                            this.episode = sourceIndex + 1
+                        }
+                    )
                 }
-            } else if (downloadUrl.contains("/file/")) {
-                // Single file source
-                val linkcode = extractLinkcode(downloadUrl)
-                val epData = """{"linkcode":"$linkcode","name":"$uploaderLabel $sizeLabel","uploader":"$uploaderLabel"}"""
-                episodes.add(
-                    newEpisode(epData) {
-                        this.name = "$uploaderLabel ($sizeLabel)"
-                        this.season = 1
-                        this.episode = sourceIndex + 1
-                    }
-                )
             }
         }
 
@@ -210,15 +236,27 @@ class VietmediafProvider : MainAPI() {
         // Parse the episode data JSON
         val linkcode: String
         val sourceName: String
+        val isFolder: Boolean
         try {
             val parsed = parseJson<EpisodeData>(data)
             linkcode = parsed.linkcode ?: return false
             sourceName = parsed.uploader ?: parsed.name ?: "Fshare"
+            isFolder = parsed.isFolder ?: false
         } catch (_: Exception) {
             return false
         }
 
-        val directUrl = FshareApi.resolve(linkcode) ?: return false
+        var targetLinkcode = linkcode
+        if (isFolder) {
+            // Giải nén folder để lấy file video
+            val folderResult = FshareApi.listFolder(linkcode) ?: return false
+            val files = folderResult.second
+            // Chọn file video đầu tiên tìm được
+            val videoFile = files.firstOrNull { it.isVideo() } ?: return false
+            targetLinkcode = videoFile.effectiveLinkcode()
+        }
+
+        val directUrl = FshareApi.resolve(targetLinkcode) ?: return false
 
         callback.invoke(
             newExtractorLink(
@@ -240,6 +278,7 @@ class VietmediafProvider : MainAPI() {
         val name: String? = null,
         val uploader: String? = null,
         val size: String? = null,
+        val isFolder: Boolean? = false,
     )
 
     // ── Helpers ──
