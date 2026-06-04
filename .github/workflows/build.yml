@@ -49,6 +49,7 @@ jobs:
           ./gradlew make makePluginsJson
           cp **/build/*.cs3 $GITHUB_WORKSPACE/builds
           cp build/plugins.json $GITHUB_WORKSPACE/builds
+          echo '{"name": "VietmediaF Repo", "description": "VietmediaF Cloudstream Extension", "manifestVersion": 1, "pluginLists": ["https://raw.githubusercontent.com/'"$GITHUB_REPOSITORY"'/builds/plugins.json"]}' > $GITHUB_WORKSPACE/builds/repo.json
 
       - name: Push builds
         run: |
