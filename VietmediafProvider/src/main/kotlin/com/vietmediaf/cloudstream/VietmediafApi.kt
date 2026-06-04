@@ -9,10 +9,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
  */
 object VietmediafApi {
     private const val BASE_URL = "https://vietmediaf.store"
-    private const val TMDB_BASE = "https://api.themoviedb.org/3"
-    private const val TMDB_API_KEY = "8d6d91941230817f7807d643736e8a49"
     private const val IMG_BASE = "https://image.tmdb.org/t/p"
-    private const val LANG = "vi"
+    private const val LANG = "vi-VN"
 
     fun posterUrl(path: String?, size: String = "w500"): String? {
         return path?.let { "$IMG_BASE/$size$it" }
@@ -116,18 +114,8 @@ object VietmediafApi {
     // ── API Methods ──
 
     suspend fun getTrending(type: String, page: Int = 1): TmdbListResponse? {
-        // type = "movie" or "tv" or "all"
         return try {
-            app.get("$TMDB_BASE/trending/$type/day?api_key=$TMDB_API_KEY&language=$LANG&page=$page")
-                .parsed<TmdbListResponse>()
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    suspend fun getDiscover(type: String, networkId: String, page: Int = 1): TmdbListResponse? {
-        return try {
-            app.get("$TMDB_BASE/discover/$type?api_key=$TMDB_API_KEY&with_networks=$networkId&language=$LANG&page=$page")
+            app.get("$BASE_URL/api/tmdb/trending/$type?page=$page&lang=$LANG")
                 .parsed<TmdbListResponse>()
         } catch (e: Exception) {
             null
@@ -136,7 +124,7 @@ object VietmediafApi {
 
     suspend fun search(type: String, query: String, page: Int = 1): TmdbListResponse? {
         return try {
-            app.get("$TMDB_BASE/search/$type?api_key=$TMDB_API_KEY&query=${java.net.URLEncoder.encode(query, "UTF-8")}&page=$page&language=$LANG")
+            app.get("$BASE_URL/api/tmdb/search/$type?q=${java.net.URLEncoder.encode(query, "UTF-8")}&page=$page&lang=$LANG")
                 .parsed<TmdbListResponse>()
         } catch (e: Exception) {
             null
@@ -145,7 +133,8 @@ object VietmediafApi {
 
     suspend fun getDetail(type: String, tmdbId: Int): TmdbDetail? {
         return try {
-            app.get("$TMDB_BASE/$type/$tmdbId?api_key=$TMDB_API_KEY&language=$LANG&append_to_response=credits")
+            // Có thể thêm cờ append_to_response nếu proxy hỗ trợ, tạm thời giữ nguyên
+            app.get("$BASE_URL/api/tmdb/$type/$tmdbId?lang=$LANG&append_to_response=credits")
                 .parsed<TmdbDetail>()
         } catch (e: Exception) {
             null
