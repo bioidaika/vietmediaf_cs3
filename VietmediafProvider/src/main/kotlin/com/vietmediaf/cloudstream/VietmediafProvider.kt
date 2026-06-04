@@ -100,52 +100,14 @@ class VietmediafProvider : MainAPI() {
             !it.downloadUrl.isNullOrBlank() && it.downloadUrl != "None"
         } ?: emptyList()
 
-        return if (type == "movie") {
-            buildMovieLoadResponse(detail, sources)
-        } else {
-            buildTvLoadResponse(detail, sources)
-        }
+        return buildLoadResponse(detail, sources, type)
     }
 
     @Suppress("DEPRECATION")
-    private suspend fun buildMovieLoadResponse(
+    private suspend fun buildLoadResponse(
         detail: VietmediafApi.TmdbDetail,
         sources: List<VietmediafApi.DownloadSource>,
-    ): MovieLoadResponse {
-        // Each source = one playable link option
-        val dataUrls = sources.map { source ->
-            val linkcode = extractLinkcode(source.downloadUrl ?: "")
-            // Encode source info as JSON for loadLinks
-            """{"linkcode":"$linkcode","name":"${source.uploader ?: ""}","size":"${source.size ?: ""}"}"""
-        }
-
-        return newMovieLoadResponse(
-            name = detail.displayTitle(),
-            url = "$mainUrl/movie/${detail.id}",
-            type = TvType.Movie,
-            dataUrl = dataUrls.firstOrNull() ?: "",
-        ) {
-            this.posterUrl = VietmediafApi.posterUrl(detail.posterPath)
-            this.backgroundPosterUrl = VietmediafApi.backdropUrl(detail.backdropPath)
-            this.year = detail.year()
-            this.plot = detail.overview
-            this.tags = detail.genres?.mapNotNull { it.name }
-            this.duration = detail.runtime
-            this.actors = detail.credits?.cast?.mapNotNull { cast ->
-                val actorName = cast.name ?: cast.originalName ?: return@mapNotNull null
-                ActorData(
-                    actor = Actor(actorName, VietmediafApi.posterUrl(cast.profilePath)),
-                    roleString = cast.character
-                )
-            }
-            this.recommendations = emptyList()
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    private suspend fun buildTvLoadResponse(
-        detail: VietmediafApi.TmdbDetail,
-        sources: List<VietmediafApi.DownloadSource>,
+        typeString: String,
     ): TvSeriesLoadResponse {
         val episodes = mutableListOf<Episode>()
 
@@ -214,8 +176,8 @@ class VietmediafProvider : MainAPI() {
 
         return newTvSeriesLoadResponse(
             name = detail.displayTitle(),
-            url = "$mainUrl/tv/${detail.id}",
-            type = TvType.TvSeries,
+            url = "$mainUrl/$typeString/${detail.id}",
+            type = if (typeString == "movie") TvType.Movie else TvType.TvSeries,
             episodes = episodes,
         ) {
             this.posterUrl = VietmediafApi.posterUrl(detail.posterPath)
