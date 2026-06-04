@@ -3,6 +3,7 @@ package com.vietmediaf.cloudstream
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 
 class VietmediafProvider : MainAPI() {
@@ -106,7 +107,8 @@ class VietmediafProvider : MainAPI() {
         }
     }
 
-    private fun buildMovieLoadResponse(
+    @Suppress("DEPRECATION")
+    private suspend fun buildMovieLoadResponse(
         detail: VietmediafApi.TmdbDetail,
         sources: List<VietmediafApi.DownloadSource>,
     ): MovieLoadResponse {
@@ -127,13 +129,13 @@ class VietmediafProvider : MainAPI() {
             this.backgroundPosterUrl = VietmediafApi.backdropUrl(detail.backdropPath)
             this.year = detail.year()
             this.plot = detail.overview
-            this.rating = detail.voteAverage?.times(1000)?.toInt()
             this.tags = detail.genres?.mapNotNull { it.name }
             this.duration = detail.runtime
             this.recommendations = emptyList()
         }
     }
 
+    @Suppress("DEPRECATION")
     private suspend fun buildTvLoadResponse(
         detail: VietmediafApi.TmdbDetail,
         sources: List<VietmediafApi.DownloadSource>,
@@ -213,7 +215,6 @@ class VietmediafProvider : MainAPI() {
             this.backgroundPosterUrl = VietmediafApi.backdropUrl(detail.backdropPath)
             this.year = detail.year()
             this.plot = detail.overview
-            this.rating = detail.voteAverage?.times(1000)?.toInt()
             this.tags = detail.genres?.mapNotNull { it.name }
             this.recommendations = emptyList()
         }
@@ -221,6 +222,7 @@ class VietmediafProvider : MainAPI() {
 
     // ── Load Links (Play) ──
 
+    @Suppress("DEPRECATION")
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -243,14 +245,13 @@ class VietmediafProvider : MainAPI() {
         val directUrl = FshareApi.resolve(linkcode) ?: return false
 
         callback.invoke(
-            ExtractorLink(
+            newExtractorLink(
                 source = this.name,
                 name = sourceName,
                 url = directUrl,
-                referer = "",
-                quality = Qualities.Unknown.value,
-                isM3u8 = false,
-            )
+            ) {
+                this.quality = Qualities.Unknown.value
+            }
         )
 
         return true
