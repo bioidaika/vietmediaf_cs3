@@ -2,6 +2,7 @@ package com.vietmediaf.cloudstream
 
 import com.lagradost.cloudstream3.app
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 
 /**
  * Client for the VietmediaF backend API (vietmediaf.store/api).
@@ -22,6 +23,7 @@ object VietmediafApi {
 
     // ── TMDB Data Classes ──
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     data class TmdbListResponse(
         @JsonProperty("page") val page: Int? = null,
         @JsonProperty("results") val results: List<TmdbItem>? = null,
@@ -29,6 +31,7 @@ object VietmediafApi {
         @JsonProperty("total_results") val totalResults: Int? = null,
     )
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     data class TmdbItem(
         @JsonProperty("id") val id: Int? = null,
         @JsonProperty("title") val title: String? = null,       // movie
@@ -51,6 +54,7 @@ object VietmediafApi {
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     data class TmdbDetail(
         @JsonProperty("id") val id: Int? = null,
         @JsonProperty("title") val title: String? = null,
@@ -76,10 +80,12 @@ object VietmediafApi {
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     data class TmdbCredits(
         @JsonProperty("cast") val cast: List<TmdbCast>? = null,
     )
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     data class TmdbCast(
         @JsonProperty("id") val id: Int? = null,
         @JsonProperty("name") val name: String? = null,
@@ -88,6 +94,7 @@ object VietmediafApi {
         @JsonProperty("character") val character: String? = null,
     )
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     data class TmdbGenre(
         @JsonProperty("id") val id: Int? = null,
         @JsonProperty("name") val name: String? = null,
@@ -95,12 +102,14 @@ object VietmediafApi {
 
     // ── Source/Fshare Data Classes ──
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     data class SourceResponse(
         @JsonProperty("tmdb_id") val tmdbId: String? = null,
         @JsonProperty("media_type") val mediaType: String? = null,
         @JsonProperty("sources") val sources: List<DownloadSource>? = null,
     )
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     data class DownloadSource(
         @JsonProperty("uploader") val uploader: String? = null,
         @JsonProperty("sheet_name") val sheetName: String? = null,
