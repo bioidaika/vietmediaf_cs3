@@ -152,37 +152,38 @@ class VietmediafProvider : MainAPI() {
                     val linkcode = extractFolderLinkcode(downloadUrl)
                     val folderResult = FshareApi.listFolder(linkcode)
 
-                if (folderResult != null) {
-                    val (subfolders, files) = folderResult
+                    if (folderResult != null) {
+                        val (subfolders, files) = folderResult
 
-                    if (subfolders.isNotEmpty()) {
-                        // Subfolders = Seasons
-                        for ((seasonIdx, folder) in subfolders.sortedBy { it.name }.withIndex()) {
-                            val subResult = FshareApi.listFolder(folder.effectiveLinkcode())
-                            val subFiles = subResult?.second ?: continue
+                        if (subfolders.isNotEmpty()) {
+                            // Subfolders = Seasons
+                            for ((seasonIdx, folder) in subfolders.sortedBy { it.name }.withIndex()) {
+                                val subResult = FshareApi.listFolder(folder.effectiveLinkcode())
+                                val subFiles = subResult?.second ?: continue
 
-                            for ((epIdx, file) in subFiles.sortedBy { it.name }.withIndex()) {
+                                for ((epIdx, file) in subFiles.sortedBy { it.name }.withIndex()) {
+                                    val epData = """{"linkcode":"${file.effectiveLinkcode()}","name":"${file.name ?: ""}","uploader":"$uploaderLabel"}"""
+                                    episodes.add(
+                                        newEpisode(epData) {
+                                            this.name = file.name
+                                            this.season = seasonIdx + 1
+                                            this.episode = epIdx + 1
+                                        }
+                                    )
+                                }
+                            }
+                        } else if (files.isNotEmpty()) {
+                            // No subfolders → all files = Season 1
+                            for ((epIdx, file) in files.sortedBy { it.name }.withIndex()) {
                                 val epData = """{"linkcode":"${file.effectiveLinkcode()}","name":"${file.name ?: ""}","uploader":"$uploaderLabel"}"""
                                 episodes.add(
                                     newEpisode(epData) {
                                         this.name = file.name
-                                        this.season = seasonIdx + 1
+                                        this.season = sourceIndex + 1
                                         this.episode = epIdx + 1
                                     }
                                 )
                             }
-                        }
-                    } else if (files.isNotEmpty()) {
-                        // No subfolders → all files = Season 1
-                        for ((epIdx, file) in files.sortedBy { it.name }.withIndex()) {
-                            val epData = """{"linkcode":"${file.effectiveLinkcode()}","name":"${file.name ?: ""}","uploader":"$uploaderLabel"}"""
-                            episodes.add(
-                                newEpisode(epData) {
-                                    this.name = file.name
-                                    this.season = sourceIndex + 1
-                                    this.episode = epIdx + 1
-                                }
-                            )
                         }
                     }
                 } else if (downloadUrl.contains("/file/")) {
