@@ -43,15 +43,28 @@ class VietmediafProvider : MainAPI() {
     // ── Main Page ──
 
     override val mainPage = mainPageOf(
-        "movie" to "🎬 Phim Lẻ Thịnh Hành",
-        "tv" to "📺 Phim Bộ Thịnh Hành",
+        "trending_all" to "🔥 Xu Hướng (Trending)",
+        "trending_movie" to "🎬 Phim Lẻ Thịnh Hành",
+        "213" to "📺 Netflix",
+        "1024" to "📺 Amazon",
+        "2739" to "📺 Disney+",
+        "453" to "📺 Hulu",
+        "2552" to "📺 Apple TV+",
+        "49" to "📺 HBO",
+        "4330" to "📺 Paramount+",
+        "3353" to "📺 Peacock",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        val type = request.data  // "movie" or "tv"
-        val response = VietmediafApi.getTrending(type, page) ?: return null
+        val data = request.data
+        val response = when (data) {
+            "trending_all" -> VietmediafApi.getTrending("all", page)
+            "trending_movie" -> VietmediafApi.getTrending("movie", page)
+            else -> VietmediafApi.getDiscover("tv", data, page)
+        } ?: return null
 
         val items = response.results?.mapNotNull { item ->
+            val type = item.mediaType ?: if (data == "trending_movie") "movie" else "tv"
             item.toSearchResponse(type)
         } ?: emptyList()
 
@@ -131,6 +144,13 @@ class VietmediafProvider : MainAPI() {
             this.plot = detail.overview
             this.tags = detail.genres?.mapNotNull { it.name }
             this.duration = detail.runtime
+            this.actors = detail.credits?.cast?.mapNotNull { cast ->
+                val actorName = cast.name ?: cast.originalName ?: return@mapNotNull null
+                ActorData(
+                    actor = Actor(actorName, VietmediafApi.posterUrl(cast.profilePath)),
+                    roleString = cast.character
+                )
+            }
             this.recommendations = emptyList()
         }
     }
@@ -216,6 +236,13 @@ class VietmediafProvider : MainAPI() {
             this.year = detail.year()
             this.plot = detail.overview
             this.tags = detail.genres?.mapNotNull { it.name }
+            this.actors = detail.credits?.cast?.mapNotNull { cast ->
+                val actorName = cast.name ?: cast.originalName ?: return@mapNotNull null
+                ActorData(
+                    actor = Actor(actorName, VietmediafApi.posterUrl(cast.profilePath)),
+                    roleString = cast.character
+                )
+            }
             this.recommendations = emptyList()
         }
     }
